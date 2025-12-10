@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>南僑水晶淨化大作戰</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #2c3e50;
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow: hidden; /* 防止捲動 */
+            touch-action: none; /* 防止手機觸控時畫面捲動 */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: url('9097929.jpg') no-repeat center center / cover;
+        }
+
+        canvas {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* 讓點擊穿透到 Canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .score-board {
+            color: #13555e;
+            font-size: 20px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 彈出視窗樣式 */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            display: none; /* 預設隱藏 */
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .modal h1 {
+            color: #e67e22; /* 南僑水晶肥皂的經典橘色 */
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .modal p {
+            color: #333;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .modal .big-score {
+            font-size: 48px;
+            font-weight: 900;
+            color: #2980b9;
+            margin: 10px 0;
+        }
+
+        .btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.1s;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-copy {
+            background: #3498db;
+            font-size: 16px;
+            padding: 8px 20px;
+            margin-top: 10px;
+        }
+
+        /* 載入畫面 */
+        #start-screen {
+            display: block;
+        }
+
+        /* ===== RWD：平板以下 ===== */
+@media (max-width: 768px) {
+    .ui-layer {
+        padding: 12px;
+    }
+
+    .score-board {
+        font-size: 16px;
+        max-width: 100%;
+        padding: 4px 8px;
+    }
+
+    .modal {
+        width: 90%;
+        padding: 20px;
+    }
+
+    .modal h1 {
+        font-size: 22px;
+    }
+
+    .modal p {
+        font-size: 16px;
+    }
+
+    .modal .big-score {
+        font-size: 36px;
+    }
+
+    .btn {
+        font-size: 18px;
+        padding: 10px 24px;
+    }
+
+    .btn-copy {
+        font-size: 14px;
+        padding: 6px 18px;
+    }
+}
+
+/* ===== RWD：手機窄螢幕 ===== */
+@media (max-width: 480px) {
+    .ui-layer {
+        padding: 8px;
+    }
+
+    .score-board {
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .modal {
+        width: 92%;
+        padding: 16px;
+    }
+
+    .modal h1 {
+        font-size: 20px;
+    }
+
+    .modal p {
+        font-size: 14px;
+    }
+
+    .modal .big-score {
+        font-size: 30px;
+    }
+
+    .btn {
+        font-size: 16px;
+        padding: 8px 20px;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI 層 -->
+    <div class="ui-layer">
+        <div class="score-board">
+            <span id="scoreDisplay">分數: 0</span>
+            <span id="levelDisplay">關卡: 1/5</span>
+            <span id="livesDisplay">生命: ❤️❤️❤️</span>
+        </div>
+    </div>
+
+    <!-- 開始畫面 -->
+    <div id="start-screen" class="modal">
+        <h1>南僑水晶<br>淨化大作戰</h1>
+        <p>滑動手指或滑鼠控制肥皂</p>
+        <p>消滅所有病毒磚塊！</p>
+        <button class="btn" onclick="startGame()">開始淨化</button>
+    </div>
+
+    <!-- 遊戲結束/通關畫面 -->
+    <div id="end-screen" class="modal">
+        <h1 id="end-title">遊戲結束</h1>
+        <p>本次淨化分數</p>
+        <div class="big-score" id="final-score">0</div>
+        <button class="btn btn-copy" onclick="copyScore()">複製成績留言</button>
+        <br>
+        <button class="btn" onclick="location.reload()">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 遊戲狀態
+    let globalScale = 1;
+    let gameRunning = false;
+    let score = 0;
+    let lives = 3;
+    let level = 1;
+    const maxLevels = 5;
+
+    // 載入球的圖片
+    const ballImage = new Image();
+    // 這裡設定圖片路徑，請確保圖片檔名為 '南僑水晶.png' 並且在同一目錄下
+    ballImage.src = '南僑水晶.png'; 
+    // 加入錯誤處理，如果圖片沒載入，會顯示預設的圓形
+    let imageLoaded = false;
+let ballImgRatio = 1; // 加這行（新）
+
+ballImage.onload = function () {
+    imageLoaded = true;
+
+    // 下面 3 行是新增的（新）
+    const w = ballImage.naturalWidth || ballImage.width;
+    const h = ballImage.naturalHeight || ballImage.height;
+    ballImgRatio = w / h;  // 記錄圖片比例
+};
+
+    // 響應式 Canvas 設定
+function resizeCanvas() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    canvas.width = vw;
+    canvas.height = vh;
+
+    // === 全遊戲統一縮放比例 ===
+    // 基準畫面（你喜歡可以改掉）
+    const baseWidth = 414;   // iPhone 常見寬度
+    const baseHeight = 736;  // 典型直向比例
+
+    const scaleX = vw / baseWidth;
+    const scaleY = vh / baseHeight;
+
+    // 取較小的那個，避免超出畫面
+    globalScale = Math.min(scaleX, scaleY);
+
+    // === 套用到板子 ===
+    paddle.width = 200 * globalScale;
+    paddle.height = 15 * globalScale;
+
+    // 板子位置保持在底部
+    paddle.y = canvas.height - 40 * globalScale;
+
+    // === 套用到球 ===
+    ball.size = 20 * globalScale;
+
+    // === 套用到病毒磚塊 ===
+    brickConfig.height = 30 * globalScale;
+    brickConfig.padding = 10 * globalScale;
+    brickConfig.offsetTop = 60 * globalScale;
+
+    initBricks();
+    resetBall();
+}
+
+    // 球體設定
+    const ball = {
+        x: 0,
+        y: 0,
+        size: 20, // 稍微加大半徑讓圖片看清楚一點 (原本是10)
+        speed: 3, 
+        dx: 4,
+        dy: -4,
+        color: 'rgba(230, 126, 34, 0.9)'
+    };
+
+    // 板子設定
+    const paddle = {
+        width: 200,
+        height: 15,
+        x: 0,
+        y: canvas.height - 300, 
+        color: '#312aa6',
+        speed: 8
+    };
+
+    // 磚塊設定
+    const brickConfig = {
+        rowCount: 3,
+        columnCount: 5,
+        width: 0, 
+        height: 30,
+        padding: 10,
+        offsetTop: 60,
+        offsetLeft: 30,
+        colors: ['#2ecc71', '#9b59b6', '#e74c3c', '#f1c40f', '#34495e']
+    };
+
+    let bricks = [];
+    let brickOffsetX = 0;        // 目前水平偏移量
+    let brickDirection = 1;      // 1 往右、-1 往左
+    const brickMaxOffset = 40;   // 左右最多移動距離（可以自己調）
+    const brickMoveSpeed = 1.2;  // 每禎移動多少（越大越快）
+
+    // 初始化磚塊
+function initBricks() {
+    bricks = [];
+
+    // 如果你有病毒左右移動，這兩行可以留著：
+    // brickOffsetX = 0;
+    // brickDirection = 1;
+
+    // 每一關列數一樣用原本的
+    brickConfig.rowCount = 2 + level;
+
+    // === 這裡開始是「電腦多一點病毒、手機少一點」的核心 ===
+    let maxColumns;      // 這關最多幾行病毒
+    let baseBrickWidth;  // 預期單一磚的「目標寬度」
+
+    if (canvas.width >= 1200) {
+        // 桌機：畫面很寬 → 多一點病毒、每顆稍微窄
+        maxColumns = 14;
+        baseBrickWidth = 55;
+    } else if (canvas.width >= 768) {
+        // 平板：中間值
+        maxColumns = 11;
+        baseBrickWidth = 60;
+    } else {
+        // 手機：少一點病毒，不要太擠
+        maxColumns = 8;
+        baseBrickWidth = 70;
+    }
+
+    // 用螢幕寬度 / 預期寬度，算出理論上可以放幾顆
+    brickConfig.columnCount = Math.floor(
+        (canvas.width - 40 * globalScale) / (baseBrickWidth * globalScale + brickConfig.padding)
+    );
+
+    // 限制一個合理範圍，避免太少或太多
+    brickConfig.columnCount = Math.max(4, Math.min(brickConfig.columnCount, maxColumns));
+
+    // 依照算出來的 columnCount 重新平均排版，讓整排剛好鋪滿
+    let totalPadding = (brickConfig.columnCount + 1) * brickConfig.padding;
+    brickConfig.width = (canvas.width - totalPadding) / brickConfig.columnCount;
+    brickConfig.offsetLeft = brickConfig.padding;
+
+    // === 建立磚塊陣列 ===
+    for (let c = 0; c < brickConfig.columnCount; c++) {
+        bricks[c] = [];
+        for (let r = 0; r < brickConfig.rowCount; r++) {
+            let status = 1;
+            if (level >= 3 && Math.random() > 0.8) status = 2;
+
+            bricks[c][r] = {
+                x: 0,
+                y: 0,
+                status: status,
+                color: brickConfig.colors[r % brickConfig.colors.length]
+            };
+        }
+    }
+}
+
+
+    // 繪製球 (已修改為繪製圖片)
+function drawBall() {
+    ctx.imageSmoothingEnabled = false; // 讓圖片更清楚
+
+    if (imageLoaded) {
+
+        const scale = 3; // ← 你想放多大調這裡
+        const targetHeight = ball.size * 2 * scale;
+        const targetWidth  = targetHeight * ballImgRatio;
+
+        const drawX = ball.x - targetWidth / 2;
+        const drawY = ball.y - targetHeight / 2;
+
+        ctx.drawImage(ballImage, drawX, drawY, targetWidth, targetHeight);
+
+    } else {
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI * 2);
+        let gradient = ctx.createRadialGradient(ball.x - 2, ball.y - 2, ball.size/4, ball.x, ball.y, ball.size);
+        gradient.addColorStop(0, '#f39c12');
+        gradient.addColorStop(1, '#d35400');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.4)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.closePath();
+    }
+}
+
+
+    // 繪製板子
+    function drawPaddle() {
+        ctx.beginPath();
+        ctx.roundRect(
+    paddle.x,
+    paddle.y, 
+    paddle.width,
+    paddle.height,
+    10 * globalScale
+);
+
+        ctx.fillStyle = paddle.color;
+        ctx.fill();
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "white";
+        ctx.closePath();
+        ctx.shadowBlur = 0;
+    }
+
+    // 繪製病毒磚塊
+    function drawBricks() {
+    for (let c = 0; c < brickConfig.columnCount; c++) {
+        for (let r = 0; r < brickConfig.rowCount; r++) {
+            if (bricks[c][r].status > 0) {
+                // 原本基礎位置
+                const baseX = (c * (brickConfig.width + brickConfig.padding)) + brickConfig.offsetLeft;
+                const baseY = (r * (brickConfig.height + brickConfig.padding)) + brickConfig.offsetTop;
+
+                // 第 2 關開始左右移動（新）
+                const brickX = baseX + (level >= 3 ? brickOffsetX : 0);
+                const brickY = baseY;
+
+                bricks[c][r].x = brickX;
+                bricks[c][r].y = brickY;
+
+                let centerX = brickX + brickConfig.width / 2;
+                let centerY = brickY + brickConfig.height / 2;
+                let radius = Math.min(brickConfig.width, brickConfig.height) / 2;
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = bricks[c][r].color;
+                ctx.fill();
+
+                // 病毒觸手
+                for(let i=0; i<8; i++) {
+                    let angle = (i / 8) * Math.PI * 2;
+                    let startX = centerX + Math.cos(angle) * (radius * 0.6);
+                    let startY = centerY + Math.sin(angle) * (radius * 0.6);
+                    let endX = centerX + Math.cos(angle) * (radius * 1.3);
+                    let endY = centerY + Math.sin(angle) * (radius * 1.3);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.lineWidth = 3 * globalScale;
+                    ctx.strokeStyle = bricks[c][r].color;
+                    ctx.stroke();
+                }
+
+                if(bricks[c][r].status === 2) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.font = "16px Arial";
+                    ctx.fillText("💢", centerX - 9, centerY + 6);
+                }
+                
+                ctx.closePath();
+            }
+        }
+    }
+}
+
+
+    // 碰撞偵測
+    function collisionDetection() {
+        for (let c = 0; c < brickConfig.columnCount; c++) {
+            for (let r = 0; r < brickConfig.rowCount; r++) {
+                const b = bricks[c][r];
+                if (b.status > 0) {
+                    if (ball.x > b.x && ball.x < b.x + brickConfig.width && ball.y > b.y && ball.y < b.y + brickConfig.height) {
+                        ball.dy = -ball.dy;
+                        b.status--; 
+                        
+                        if(b.status === 0) {
+                            score += 10 * level; 
+                            document.getElementById('scoreDisplay').innerText = `分數: ${score}`;
+                            checkLevelClear();
+                        } else {
+                            score += 2;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 檢查是否過關
+    function checkLevelClear() {
+        let isCleared = true;
+        for (let c = 0; c < brickConfig.columnCount; c++) {
+            for (let r = 0; r < brickConfig.rowCount; r++) {
+                if (bricks[c][r].status > 0) {
+                    isCleared = false;
+                    break;
+                }
+            }
+        }
+
+        if (isCleared) {
+            if (level === maxLevels) {
+                gameOver(true); 
+            } else {
+                level++;
+                ball.speed += 0.5; 
+                paddle.width *= 0.9; 
+                document.getElementById('levelDisplay').innerText = `關卡: ${level}/${maxLevels}`;
+                resetBall();
+                initBricks();
+            }
+        }
+    }
+
+    function resetBall() {
+        ball.x = canvas.width / 2;
+        ball.y = paddle.y - 30 * globalScale;
+        
+        let angle = (Math.random() * 45 + 45) * (Math.PI / 180); 
+        if(Math.random() > 0.5) angle = 180 - angle; 
+
+        let speed = (ball.speed + level * 0.5) * globalScale;
+        ball.dx = speed * (Math.random() > 0.5 ? 1 : -1);
+        ball.dy = -speed;
+
+        
+        paddle.x = (canvas.width - paddle.width) / 2;
+    }
+
+    function draw() {
+        if (!gameRunning) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (level >= 2) {
+        brickOffsetX += brickMoveSpeed * brickDirection;
+
+        // 超過左右最大位移就反向
+        if (brickOffsetX > brickMaxOffset || brickOffsetX < -brickMaxOffset) {
+            brickDirection *= -1;
+        }
+    }
+
+        drawBricks();
+        drawBall(); // 現在會畫出南僑水晶圖片
+        drawPaddle();
+        collisionDetection();
+
+        if (ball.x + ball.dx > canvas.width - ball.size || ball.x + ball.dx < ball.size) {
+            ball.dx = -ball.dx;
+        }
+        if (ball.y + ball.dy < ball.size) {
+            ball.dy = -ball.dy;
+        } else if (ball.y + ball.dy > canvas.height - ball.size) {
+            lives--;
+            updateLivesDisplay();
+            if (lives <= 0) {
+                gameOver(false);
+            } else {
+                resetBall();
+            }
+        }
+
+        if (ball.y + ball.dy + ball.size >= canvas.height - paddle.height - 10 && 
+            ball.y + ball.dy - ball.size <= canvas.height - 10) {
+            
+            if (ball.x >= paddle.x && ball.x <= paddle.x + paddle.width) {
+                let hitPoint = ball.x - (paddle.x + paddle.width / 2);
+                hitPoint = hitPoint / (paddle.width / 2);
+                let speed = Math.sqrt(ball.dx*ball.dx + ball.dy*ball.dy); 
+                let angle = hitPoint * (Math.PI / 3); 
+                ball.dx = speed * Math.sin(angle);
+                ball.dy = -Math.abs(speed * Math.cos(angle)); 
+            }
+        }
+
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        requestAnimationFrame(draw);
+    }
+
+    function updateLivesDisplay() {
+        let hearts = "";
+        for(let i=0; i<lives; i++) hearts += "❤️";
+        document.getElementById('livesDisplay').innerText = `生命: ${hearts}`;
+    }
+
+function startGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    gameRunning = true;
+    draw();
+}
+
+
+    function gameOver(win) {
+        gameRunning = false;
+        document.getElementById('end-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = score;
+        const title = document.getElementById('end-title');
+        
+        if (win) {
+            title.innerText = "🎉 恭喜通關！";
+            title.style.color = "#e67e22";
+        } else {
+            title.innerText = "😭 病毒太強了...";
+            title.style.color = "#7f8c8d";
+        }
+    }
+
+    function copyScore() {
+        const text = `我在南僑水晶淨化大作戰獲得了 ${score} 分！快來挑戰我吧！ #南僑水晶 #消滅病毒`;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('.btn-copy');
+            btn.innerText = "已複製！";
+            setTimeout(() => btn.innerText = "複製成績留言", 2000);
+        });
+    }
+
+    function movePaddle(clientX) {
+        const relativeX = clientX - canvas.offsetLeft;
+        if (relativeX > 0 && relativeX < canvas.width) {
+            paddle.x = relativeX - paddle.width / 2;
+        }
+    }
+
+    document.addEventListener("mousemove", (e) => {
+        movePaddle(e.clientX);
+    });
+
+    document.addEventListener("touchmove", (e) => {
+        e.preventDefault(); 
+        movePaddle(e.touches[0].clientX);
+    }, { passive: false });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    resizeCanvas();
+
+</script>
+
+</body>
+</html>
